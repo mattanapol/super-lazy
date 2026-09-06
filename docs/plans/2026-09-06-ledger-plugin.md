@@ -1417,29 +1417,60 @@ grep -rn "superpowers:\|docs/superpowers/\|subagent-driven-development\|writing-
 ```
 Expected: no output, `exit=1`. Any hit is a dangling reference to a skill this plugin deleted.
 
-- [ ] **Step 3: Install the plugin locally**
+- [ ] **Step 3: Verify the plugin is installable without installing it**
 
-Run, in a Claude Code session:
-```text
-/plugin marketplace add /Users/kaewsai/repos/temp2
-/plugin install ledger
+A real `/plugin install` needs an interactive Claude Code session, which an
+implementing agent does not have. Do NOT fake it. Instead verify everything
+that install would check, statically:
+
+Run:
+```bash
+node -e "
+const m=require('./.claude-plugin/plugin.json');
+for (const k of ['name','description','version']) if(!m[k]) throw new Error('manifest missing '+k);
+const fs=require('fs');
+const skills=fs.readdirSync('skills',{withFileTypes:true}).filter(e=>e.isDirectory()).map(e=>e.name);
+if(skills.length!==12) throw new Error('expected 12 skills, found '+skills.length);
+for(const s of skills) if(!fs.existsSync('skills/'+s+'/SKILL.md')) throw new Error('no SKILL.md in '+s);
+const h=JSON.parse(fs.readFileSync('hooks/hooks.json','utf8'));
+if(!h.hooks.SessionStart) throw new Error('no SessionStart hook');
+if(!fs.existsSync('commands/gates-enforce.md')) throw new Error('missing gates-enforce command');
+console.log('installable: manifest ok, '+skills.length+' skills, SessionStart hook, 1 command');
+"
 ```
-Expected: install succeeds and all twelve skills appear in the skill list.
+Expected: `installable: manifest ok, 12 skills, SessionStart hook, 1 command`
 
-- [ ] **Step 4: Confirm the router loads on session start**
+Record in the report that a live `/plugin install` remains **unverified and
+must be done by the user**, and name it as such in the validation report.
 
-Start a fresh Claude Code session in a scratch directory and confirm the
-`using-ledger` text is present in context — ask the agent to name the
-workflow sequence without giving it the answer.
-Expected: it names `brainstorming → planning → executing → verifying → finishing-a-development-branch`.
+- [ ] **Step 4: Confirm the hook delivers the router**
 
-- [ ] **Step 5: Subagent-test the three merged skills**
+The hook is what puts `using-ledger` into a session. Verify it directly
+rather than inferring it from a live session:
 
-For each of `planning`, `executing`, `verifying`, follow
-`skills/writing-skills/testing-skills-with-subagents.md`: dispatch a
-subagent given only that skill and one representative task, and check
-whether it follows the process without being told to. Record pass/fail and
-the specific step any subagent skipped.
+Run:
+```bash
+hooks/session-start | node -e "
+let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{
+  const j=JSON.parse(s);
+  const c=j.hookSpecificOutput.additionalContext;
+  if(j.hookSpecificOutput.hookEventName!=='SessionStart') throw new Error('wrong event name');
+  for (const name of ['brainstorming','planning','executing','verifying','finishing-a-development-branch'])
+    if(!c.includes(name)) throw new Error('workflow missing '+name);
+  console.log('router delivered: '+c.length+' chars, workflow chain present');
+});"
+```
+Expected: `router delivered: <n> chars, workflow chain present`
+
+- [ ] **Step 5: Leave the merged-skill subagent tests to the controller**
+
+`skills/writing-skills/testing-skills-with-subagents.md` prescribes dispatching
+a subagent that has only the skill under test. An implementer is contractually
+forbidden from dispatching subagents, so this step is **not yours**. Do not
+attempt it and do not simulate it.
+
+Record in your report that Step 5 is owned by the controller. The controller
+runs it separately and folds the result into the validation report.
 
 - [ ] **Step 6: Prove a gate blocks a premature completion claim**
 
