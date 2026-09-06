@@ -461,7 +461,7 @@ if (invokedDirectly) {
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `node --test tests/`
-Expected: PASS — 11 tests, 0 failures
+Expected: PASS — 12 tests, 0 failures
 
 - [ ] **Step 6: Commit**
 
