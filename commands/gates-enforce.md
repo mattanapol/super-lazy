@@ -9,6 +9,27 @@ session's resolved pipeline has unmet gates or incomplete dispatch waves.
 Its progress guard releases after six no-progress blocks, so it cannot
 wedge a session.
 
+Before step 1, resolve where this plugin's scripts live. `CLAUDE_PLUGIN_ROOT`
+is substituted into `hooks.json`, MCP, and LSP configs — not into the Bash
+environment, where it expands to nothing and turns every command below into
+`node /scripts/…`. This command file is `<plugin-root>/commands/gates-enforce.md`,
+so the scripts are one level up in `<plugin-root>/scripts/`. Take the absolute
+path you opened this file at, drop the trailing `/commands/gates-enforce.md`,
+hold the result in `LEDGER`, and confirm it:
+
+```bash
+LEDGER=/absolute/path/to/ledger
+node -e "const r=process.argv[1];if(!require('fs').existsSync(r+'/scripts/install-hooks.mjs')){console.error('LEDGER WRONG: no scripts/install-hooks.mjs under '+r);process.exit(1)}console.log('LEDGER OK '+r)" "$LEDGER"
+# LEDGER OK /absolute/path/to/ledger
+```
+
+`LEDGER OK` is the only success output; anything else exits `1`. Keep the
+`LEDGER=` assignment in the same shell block as each command below — some
+hosts give every Bash call a fresh shell, and an empty `$LEDGER` installs
+nothing while looking like it did. `ledger:verifying`'s "Resolving The
+Checker" section is the same mechanism in full, but do not go read it first:
+this command must work in a session that has never loaded a ledger skill.
+
 1. Explain to the user what installing this changes: the agent becomes
    structurally unable to end a turn while a required gate is unmet. This
    is opt-in and per project, and it writes machine-specific absolute
@@ -21,14 +42,14 @@ wedge a session.
 3. If `$ARGUMENTS` contains `--uninstall`, run this and skip to step 5:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.mjs" --uninstall
+   node "$LEDGER/scripts/install-hooks.mjs" --uninstall
    ```
 
 4. Otherwise, you are installing. First check how many pipelines this
    project has:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --list-scopes
+   node "$LEDGER/scripts/gate-check.mjs" --list-scopes
    ```
 
    - **Zero or one scope printed.** The hook resolves its pipeline on its
@@ -37,7 +58,7 @@ wedge a session.
      as shown here, with no `--scope`, then move on to step 5:
 
      ```bash
-     node "${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.mjs"
+     node "$LEDGER/scripts/install-hooks.mjs"
      ```
 
    - **Two or more scopes printed.** Installing bare is unsafe here: with
@@ -54,7 +75,7 @@ wedge a session.
        block against it:
 
        ```bash
-       node "${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.mjs" --scope <ID>
+       node "$LEDGER/scripts/install-hooks.mjs" --scope <ID>
        ```
 
        This one command bakes `--scope <ID>` into the installed command
@@ -75,8 +96,8 @@ wedge a session.
        both of these, in order:
 
        ```bash
-       node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --bind "$CLAUDE_CODE_SESSION_ID" --scope <ID>
-       node "${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.mjs"
+       node "$LEDGER/scripts/gate-check.mjs" --bind "$CLAUDE_CODE_SESSION_ID" --scope <ID>
+       node "$LEDGER/scripts/install-hooks.mjs"
        ```
 
        If `$CLAUDE_CODE_SESSION_ID` is unset in this environment, ask

@@ -17,6 +17,26 @@ A runnable gate — one with `CHECK:` and `EXPECT:` — is met only when its com
 
 A checked box (`- [x]`) whose `EVIDENCE:` is missing, blank, or still `pending` is unmet, regardless of what the checkbox says. Reading the code and feeling confident does not move a gate from unmet to met. Only a matching exit-0 run — or, for a manual gate, real recorded evidence — does that.
 
+## Resolving The Checker
+
+This file is `<plugin-root>/skills/verifying/SKILL.md`, so the tools it calls sit two levels up, in `<plugin-root>/scripts/`. Nothing in a shell names that root. `CLAUDE_PLUGIN_ROOT` is substituted into `hooks.json`, MCP, and LSP configs only; it is absent from the Bash environment, where it expands to nothing and quietly turns a checker invocation into `node /scripts/gate-check.mjs`. Never put it in a command.
+
+Resolve the root once per session instead: take the absolute path you opened this file at and drop the trailing `/skills/verifying/SKILL.md`. Hold the result in `LEDGER`, and confirm it before you rely on it:
+
+```bash
+LEDGER=/absolute/path/to/ledger
+node -e "const r=process.argv[1];if(!require('fs').existsSync(r+'/scripts/gate-check.mjs')){console.error('LEDGER WRONG: no scripts/gate-check.mjs under '+r);process.exit(1)}console.log('LEDGER OK '+r)" "$LEDGER"
+# LEDGER OK /absolute/path/to/ledger
+```
+
+`LEDGER OK` is the only success output. An empty, stale, or mistyped value prints `LEDGER WRONG` and exits `1` rather than letting you run the next command against a path that does not exist. Do not run any tool below until you have seen it.
+
+Assign `LEDGER` at the top of every command block that uses it. Some hosts give each Bash call a fresh shell, so a value set in an earlier call may already be gone — and an empty `$LEDGER` fails exactly the way the placeholder it replaced did. Re-resolve after a compaction for the same reason: a shell variable does not survive one, and neither does your memory of the path unless you wrote it down.
+
+**Gate `CHECK:` lines carry the resolved absolute path itself — never `$LEDGER`, never a placeholder.** A `CHECK:` is stored text that some *other* shell runs later: a parent's `--reverify`, a fresh session, the Stop hook. Approval binds the exact command text and not the environment behind it, so a `CHECK:` naming a variable passes in the session that authored it and then fails for everyone who re-verifies it, while a `CHECK:` naming an unsubstituted placeholder never passes for anyone. Both are permanently broken oracles, stored inside the artifact that is supposed to be the completion contract.
+
+`<skill-dir>` in the vendored references and templates — [`references/parallel.md`](../../references/parallel.md), [`references/dispatch.md`](../../references/dispatch.md), [`references/SECURITY.md`](../../references/SECURITY.md), [`templates/PLAN.md`](../../templates/PLAN.md), [`templates/gates-node.md`](../../templates/gates-node.md) — means this same plugin root. Those files are vendored byte-identical from upstream and cannot be edited here, so read every `node <skill-dir>/scripts/…` in them as this resolved path.
+
 ## Write Gates Before The Work
 
 Copy [`templates/gates-leaf.md`](../../templates/gates-leaf.md) to `GATES.md` before you start the work it will verify, not after. Gates written against work you've already finished tend to describe what you did, not what would have proven you wrong.
@@ -38,25 +58,27 @@ A gate that cannot fail is not a gate; it is a checkbox wearing one. Before you 
 An oracle that cannot fail is cheap to write and expensive to discover — cheapest to catch before the work behind it is spent:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-lint.mjs" GATES.md
+node "$LEDGER/scripts/gate-lint.mjs" GATES.md
 ```
 
 `gate-lint` never executes a `CHECK:`; it reads the ledger and flags lexical smells — a fixed-output command, an `EXPECT:` word that failure output prints just as readily, a title naming an activity instead of an outcome, a mostly-manual ledger. A clean lint is not proof the gates are honest, only that the cheap mistakes aren't present. Make the ledger require its own quality by linting as a gate:
 
 ```markdown
 - [ ] G0: this ledger states outcomes that can fail
-  CHECK: node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-lint.mjs" GATES.md
+  CHECK: node "/absolute/path/to/ledger/scripts/gate-lint.mjs" GATES.md
   EXPECT: LINT OK
   EVIDENCE: pending
 ```
+
+That path is `LEDGER`'s resolved value written out in full, for the reason in "Resolving The Checker": this line is re-run by whoever inherits the ledger, in a shell that never saw your variable.
 
 ## Treat `CHECK:` As Code
 
 `CHECK:` is shell code. It runs with your permissions and your inherited environment, including the full `PATH`. Never approve one you haven't read.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --status GATES.md   # parses and reports; never executes
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --approve GATES.md  # runs only what you approve
+node "$LEDGER/scripts/gate-check.mjs" --status GATES.md   # parses and reports; never executes
+node "$LEDGER/scripts/gate-check.mjs" --approve GATES.md  # runs only what you approve
 ```
 
 `--status` parses and reports ledger state without executing, approving, or writing anything — safe to run on an inherited ledger before you've reviewed it. Before running any gate for the first time, read every `CHECK:`, every `EXPECT:`, and every script or command each one calls, including generated or otherwise-ignored files. Only then run with `--approve`.
@@ -74,7 +96,7 @@ A successful `EXPECT:` match is not proof the English gate is honest, even on a 
 Parent verification runs `--reverify`, which re-executes every runnable gate — including ones already met — and demotes any whose oracle no longer passes:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --reverify GATES.md
+node "$LEDGER/scripts/gate-check.mjs" --reverify GATES.md
 ```
 
 `--status` reports what a ledger claims; it never re-runs anything, so it can never be the last thing you do before accepting someone else's "done." Old evidence is not current evidence — a passing run from an hour ago says nothing about the code as it stands now. A shell or `PATH` mismatch between the original run and yours is a failed verification to resolve, not evidence you set aside and move past. If a `--reverify` fails and the reason isn't immediately obvious, that calls for `ledger:systematic-debugging`, not a second guess at the same command.

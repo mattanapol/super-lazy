@@ -17,6 +17,26 @@ You are the driver. You plan each wave, dispatch it, verify every return indepen
 
 **Continuous execution:** do not pause to check in between leaves. "Should I continue?" prompts and progress summaries waste your partner's time; they asked you to execute the plan, so execute it. Only the four conditions in §7 stop you.
 
+## Resolving The Tools
+
+This file is `<plugin-root>/skills/executing/SKILL.md`, so every tool below sits two levels up: the checkers in `<plugin-root>/scripts/`, this skill's helper scripts in `<plugin-root>/skills/executing/scripts/`. Nothing in a shell names that root. `CLAUDE_PLUGIN_ROOT` is substituted into `hooks.json`, MCP, and LSP configs only; it is absent from the Bash environment, where it expands to nothing and quietly turns a checker invocation into `node /scripts/gate-check.mjs`. Never put it in a command.
+
+Resolve the root once per session instead: take the absolute path you opened this file at and drop the trailing `/skills/executing/SKILL.md`. Hold the result in `LEDGER`, and confirm it before you rely on it:
+
+```bash
+LEDGER=/absolute/path/to/ledger
+node -e "const r=process.argv[1];if(!require('fs').existsSync(r+'/scripts/gate-check.mjs')){console.error('LEDGER WRONG: no scripts/gate-check.mjs under '+r);process.exit(1)}console.log('LEDGER OK '+r)" "$LEDGER"
+# LEDGER OK /absolute/path/to/ledger
+```
+
+`LEDGER OK` is the only success output. An empty, stale, or mistyped value prints `LEDGER WRONG` and exits `1` rather than letting you claim a leaf against a path that does not exist. Do not run any tool below until you have seen it.
+
+Assign `LEDGER` at the top of every command block that uses it — the examples below do. Some hosts give each Bash call a fresh shell, so a value set in an earlier call may already be gone, and an empty `$LEDGER` fails exactly the way the placeholder it replaced did. Write the resolved path into the progress ledger next to `$WS` and `$SCOPE`, and re-resolve after every compaction: a shell variable does not survive one, and a driver that re-derives it from a half-remembered path is the driver that dispatches a wave against `/scripts/`.
+
+**Gate `CHECK:` lines carry the resolved absolute path itself — never `$LEDGER`, never a placeholder.** A `CHECK:` is stored text that some *other* shell runs later: your own `--reverify`, a branch's `N1`, the Stop hook. Approval binds the exact command text and not the environment behind it, so a `CHECK:` naming a variable passes in the session that authored it and then fails for everyone who re-verifies it. `ledger:verifying` has the full rule; the node ledgers you inherit from `templates/gates-node.md` need it applied to their `N1` line before they can pass.
+
+`<skill-dir>` in the vendored references and templates — [`references/parallel.md`](../../references/parallel.md), [`references/dispatch.md`](../../references/dispatch.md), [`templates/PLAN.md`](../../templates/PLAN.md), [`templates/gates-node.md`](../../templates/gates-node.md) — means this same plugin root. Those files are vendored byte-identical from upstream and cannot be edited here, so read every `node <skill-dir>/scripts/…` in them as this resolved path.
+
 ## 1. Setup
 
 Ensure the work happens in an isolated workspace: use `ledger:using-git-worktrees` to create one or verify the existing one. Never start implementation on a main/master branch without your human partner's explicit consent.
@@ -30,7 +50,8 @@ Copy the committed plan into the scope: `.unlazy/<scope>/PLAN.md`. The committed
 Resolve this plan's artifact workspace, where its briefs, reports, review packages, and progress ledger live. One directory per plan; another plan's directory is never yours to read or write:
 
 ```bash
-WS=$("${CLAUDE_PLUGIN_ROOT}/skills/executing/scripts/sdd-workspace" docs/plans/2026-09-06-rate-limiting.md)
+LEDGER=/absolute/path/to/ledger
+WS=$("$LEDGER/skills/executing/scripts/sdd-workspace" docs/plans/2026-09-06-rate-limiting.md)
 # /repo/.ledger/sdd/2026-09-06-rate-limiting
 ```
 
@@ -93,51 +114,52 @@ while an unverified leaf remains:
 One pass, with the real commands:
 
 ```bash
+LEDGER=/absolute/path/to/ledger
 SCOPE=ratelimit
 
 # 1. Claim every leaf in the wave, before anything launches.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --leaf leaf-1.1.1 --claim
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --leaf leaf-1.1.2 --claim
+node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --leaf leaf-1.1.1 --claim
+node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --leaf leaf-1.1.2 --claim
 # CLAIMED 1 path(s) for ratelimit/leaf-1.1.1: src/middleware/**
 
 # 2. Open one wave naming that exact set.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" open --scope "$SCOPE" --wave ready-1 \
+node "$LEDGER/scripts/dispatch-check.mjs" open --scope "$SCOPE" --wave ready-1 \
   --leaf leaf-1.1.1 --leaf leaf-1.1.2
 # OPEN ready-1 (0/2 started, 0/2 returned)
 
 # 3. Launch every leaf, marking its row IN-FLIGHT and recording the host handle
 #    it returned. No waits, no result reads yet.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" start --scope "$SCOPE" --wave ready-1 \
+node "$LEDGER/scripts/dispatch-check.mjs" start --scope "$SCOPE" --wave ready-1 \
   --leaf leaf-1.1.1 --handle <host-agent-id-1>
-node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" start --scope "$SCOPE" --wave ready-1 \
+node "$LEDGER/scripts/dispatch-check.mjs" start --scope "$SCOPE" --wave ready-1 \
   --leaf leaf-1.1.2 --handle <host-agent-id-2>
 # STARTED ready-1 leaf-1.1.2 (2/2 started)
 
 # 4. Seal, before the first wait.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" seal --scope "$SCOPE" --wave ready-1
+node "$LEDGER/scripts/dispatch-check.mjs" seal --scope "$SCOPE" --wave ready-1
 # SEALED ready-1 (2/2 started)
 
 # 5. A leaf comes back. Record the return before verifying anything.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" return --scope "$SCOPE" --wave ready-1 \
+node "$LEDGER/scripts/dispatch-check.mjs" return --scope "$SCOPE" --wave ready-1 \
   --leaf leaf-1.1.1
 # RETURNED ready-1 leaf-1.1.1 (1/2 returned)
 
 # 6. Re-verify that one leaf's gate ledger, independently.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --root . --cwd . --reverify \
+node "$LEDGER/scripts/gate-check.mjs" --root . --cwd . --reverify \
   ".unlazy/$SCOPE/gates/leaf-1.1.1.md"
 # UNMET: 1 (met: 2, reran: 2, previously met reverified: 2)
 #   leaf-1.1.1:G3
 
 # 7. …review (§6) lands its evidence on G3, then re-verify to completion.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --root . --cwd . --reverify \
+node "$LEDGER/scripts/gate-check.mjs" --root . --cwd . --reverify \
   ".unlazy/$SCOPE/gates/leaf-1.1.1.md"
 # ALL MET (3 met, reran: 2, previously met reverified: 2)
 
 # 8. Record, mark VERIFIED in the dispatch table, release that exact lease, record the release.
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --log "leaf-1.1.1 verified"
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --release --leaf leaf-1.1.1
+node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --log "leaf-1.1.1 verified"
+node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --release --leaf leaf-1.1.1
 # released 1 lease(s) for ratelimit/leaf-1.1.1
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --log "leaf-1.1.1 lease released"
+node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --log "leaf-1.1.1 lease released"
 ```
 
 Only then promote each `WAITING` leaf whose `Needs` are now all `VERIFIED`.
@@ -196,7 +218,7 @@ Do not invent a dependency during dispatch. Add it to `.unlazy/<scope>/PLAN.md`,
 If a native launch fails before returning a handle, leave the wave open, fix the launch problem, and retry that leaf. Never seal a partial wave; never invent a handle. If recovery is impossible, preserve the audit trail rather than deleting state:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" abandon --scope "$SCOPE" --wave ready-1 \
+node "$LEDGER/scripts/dispatch-check.mjs" abandon --scope "$SCOPE" --wave ready-1 \
   --reason "host refused every background launch after three retries"
 ```
 
@@ -213,7 +235,7 @@ Give a leaf the shared contract, its exact ownership and dependencies, its own g
 Extract its task text to a file:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/executing/scripts/task-brief" \
+"$LEDGER/skills/executing/scripts/task-brief" \
   ".unlazy/$SCOPE/PLAN.md" 1.1.1 "$WS/task-1.1.1-brief.md"
 # wrote /repo/.ledger/sdd/2026-09-06-rate-limiting/task-1.1.1-brief.md: 48 lines
 ```
@@ -266,7 +288,7 @@ Finish only when a full pass finds nothing *and* every gate in the leaf's ledger
 Package the diff as a file — it never enters your context, and the reviewer reads the commit list, stat summary, and full diff in one call:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/executing/scripts/review-package" \
+"$LEDGER/skills/executing/scripts/review-package" \
   docs/plans/2026-09-06-rate-limiting.md "$BASE" HEAD
 # wrote /repo/.ledger/sdd/2026-09-06-rate-limiting/review-a1b2c3d..d4e5f6a.diff: 3 commit(s), 41822 bytes
 ```
@@ -377,7 +399,7 @@ Work each `gates/node-*.md` branch ledger only after every named child has retur
 `N1` re-verifies the children from their exact ledgers:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --root . --cwd . --reverify --jobs 1 \
+node "$LEDGER/scripts/gate-check.mjs" --root . --cwd . --reverify --jobs 1 \
   ".unlazy/$SCOPE/gates/leaf-1.1.1.md" ".unlazy/$SCOPE/gates/leaf-1.1.2.md"
 # ALL MET (6 met, reran: 4, previously met reverified: 4)
 ```
@@ -399,7 +421,7 @@ The **final whole-branch review** is separate and happens once, after every bran
 | 3. Branch integration, `gates/node-*.md` | locally correct children that do not compose | Yes |
 | 4. Optional Stop hook | a driver ending the session with unmet ledgers or a non-terminal wave | Structural only — it executes nothing |
 
-Only layers 2 and 3 are independent of the leaf. Layer 1 is the leaf grading its own work. Layer 4 is a scan-only backstop; it never runs a check and never judges whether an oracle measures its English outcome. Install it per scope with `node "${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.mjs" --scope "$SCOPE"`. It is optional because it adds nothing a disciplined loop is not already doing — and worth having because the compacted driver is precisely the one that would otherwise stop early. On an abandonment it allows the stop and emits a bounded `HANDOFF REQUIRED` message naming the ledger or wave.
+Only layers 2 and 3 are independent of the leaf. Layer 1 is the leaf grading its own work. Layer 4 is a scan-only backstop; it never runs a check and never judges whether an oracle measures its English outcome. Install it per scope with `node "$LEDGER/scripts/install-hooks.mjs" --scope "$SCOPE"`. It is optional because it adds nothing a disciplined loop is not already doing — and worth having because the compacted driver is precisely the one that would otherwise stop early. On an abandonment it allows the stop and emits a bounded `HANDOFF REQUIRED` message naming the ledger or wave.
 
 Manual gates belong to layer 2, not beside it. The reviewer's verdict and every other human-attested outcome are re-read at parent verification, against the evidence standard in [gates.md](../../references/gates.md). Never call a leaf `VERIFIED` merely because every runnable gate passed — try to refute at least one gate that did.
 
@@ -411,16 +433,16 @@ Manual gates belong to layer 2, not beside it. The reviewer's verdict and every 
 
    ```bash
    # once per wave you opened, from status.log
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-check.mjs" status --scope "$SCOPE" --wave ready-1
+   node "$LEDGER/scripts/dispatch-check.mjs" status --scope "$SCOPE" --wave ready-1
    # final aggregate verification across every ledger in the scope
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --reverify
+   node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --reverify
    ```
 
    The aggregate scope reduction includes dispatch state and cannot print `ALL MET` while any wave is open, sealed, abandoned, or invalid. An open wave appears in the unmet list as `dispatch:ready-2 open (0/1 started)`; an abandoned one turns the whole reduction into `HANDOFF REQUIRED`.
 4. **Release the scope** — only now:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/gate-check.mjs" --scope "$SCOPE" --release
+   node "$LEDGER/scripts/gate-check.mjs" --scope "$SCOPE" --release
    ```
 
    Whole-scope release at any earlier point is reserved for explicit recovery after verifying the recorded owner is gone, never for normal promotion.
