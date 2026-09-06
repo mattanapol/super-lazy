@@ -74,7 +74,37 @@ test('rejects the 11th request in a 1s window with 429', async () => {
 Run: `npm test -- rate-limit`
 Expected: FAIL with "rateLimit is not defined"
 
-- [ ] **Step 3: Implement minimally, run again, confirm it passes, commit**
+- [ ] **Step 3: Write the minimal implementation**
+
+```javascript
+export function rateLimit ({ limit, windowMs }) {
+  const hits = new Map()
+  return async function rateLimitMiddleware (req, res, next) {
+    const key = req.tenantId ?? 'default'
+    const windowStart = Date.now() - windowMs
+    const timestamps = (hits.get(key) ?? []).filter(t => t > windowStart)
+    timestamps.push(Date.now())
+    hits.set(key, timestamps)
+    if (timestamps.length > limit) {
+      res.statusCode = 429
+      return res.end()
+    }
+    return next()
+  }
+}
+```
+
+- [ ] **Step 4: Run it, confirm it passes**
+
+Run: `npm test -- rate-limit`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/middleware/rate-limit.mjs tests/middleware/rate-limit.test.mjs
+git commit -m "feat: add per-tenant rate limit middleware"
+```
 ````
 
 Task ids and file paths here are what the dispatch table's `Leaf`/`Owns` columns and the contract inventory's `Owner`/gate columns point back to — see "How The Three Views Connect" below for the same task carried all the way through. That id-sharing is why, in orchestrated scope, a task is numbered with its Depth Tree leaf id (`1.1.1`), not a flat sequence. In solo scope there is no tree to align with, so number tasks flatly instead — `Task 1`, `Task 2` — in the order they'll be executed.
@@ -109,7 +139,7 @@ One row per leaf in the tree, in the same document, using the same ids:
 ```markdown
 | Leaf | Owns | Needs | Tier | Planned wave | State |
 |---|---|---|---|---|---|
-| leaf-1.1.1 | `src/pricing/**` | — | mechanical | 1 | READY |
+| 1.1.1 | `src/pricing/**` | - | mechanical | 1 | READY |
 ```
 
 - **`Owns`** is the planning mirror of the leaf's own `OWNS:` header (see `references/parallel.md`) — the command-time authority that `gate-check.mjs --claim` actually reads. Write the same paths here that the task's `Files:` block names. Before a leaf goes `READY`, and again at every claim, both sets are normalized and compared; they must be set-equal. On disagreement the claim fails closed — correct whichever one is wrong and recheck, never assume the plan is right because you wrote it first.
@@ -150,10 +180,10 @@ Mode: orchestrated
 ## Contract
 
 - Interfaces: `rateLimit(opts: {limit: number, windowMs: number}) -> Middleware`
-- Ownership: leaf-1.1.1 owns `src/middleware/rate-limit.mjs`, `tests/middleware/rate-limit.test.mjs`
-- Dependencies: leaf-1.1.2 needs leaf-1.1.1 VERIFIED
+- Ownership: 1.1.1 owns `src/middleware/rate-limit.mjs`, `tests/middleware/rate-limit.test.mjs`
+- Dependencies: 1.1.2 needs 1.1.1 VERIFIED
 - Host launch mode: Claude background Agents
-- Wave policy: ready-1 launches leaf-1.1.1 alone; ready-2 launches leaf-1.1.2 once 1.1.1 is VERIFIED
+- Wave policy: ready-1 launches 1.1.1 alone; ready-2 launches 1.1.2 once 1.1.1 is VERIFIED
 - Toolchain: Node 20, `npm test`, repository root as working directory
 - Conventions: middleware is a factory, never a singleton
 - Manual review: override-header privilege check, owner @security-owner
@@ -169,19 +199,19 @@ Mode: orchestrated
 
 | Leaf | Owns | Needs | Tier | Planned wave | State |
 |---|---|---|---|---|---|
-| leaf-1.1.1 | `src/middleware/rate-limit.mjs`, `tests/middleware/rate-limit.test.mjs` | - | mechanical | 1 | READY |
-| leaf-1.1.2 | `src/routes/admin-override.mjs`, `tests/routes/admin-override.test.mjs` | leaf-1.1.1 | judgment | 2 | WAITING |
+| 1.1.1 | `src/middleware/rate-limit.mjs`, `tests/middleware/rate-limit.test.mjs` | - | mechanical | 1 | READY |
+| 1.1.2 | `src/routes/admin-override.mjs`, `tests/routes/admin-override.test.mjs` | 1.1.1 | judgment | 2 | WAITING |
 
 ## Current contract inventory
 
 | ID | Required outcome or constraint | Owner | Observing gate or manual review | Disposition | Revision |
 |---|---|---|---|---|---|
-| C1 | Requests past the per-tenant limit are rejected with 429 | leaf-1.1.1 | gates/leaf-1.1.1.md:G1 | ACTIVE | 1 |
-| C2 | Override header bypasses the limit only for the override role | leaf-1.1.2 | gates/leaf-1.1.2.md:G1 | ACTIVE | 1 |
-| C3 | Override header reviewed for privilege escalation before release | leaf-1.1.2 | manual review, @security-owner | ACTIVE | 1 |
+| C1 | Requests past the per-tenant limit are rejected with 429 | 1.1.1 | gates/leaf-1.1.1.md:G1 | ACTIVE | 1 |
+| C2 | Override header bypasses the limit only for the override role | 1.1.2 | gates/leaf-1.1.2.md:G1 | ACTIVE | 1 |
+| C3 | Override header reviewed for privilege escalation before release | 1.1.2 | manual review, @security-owner | ACTIVE | 1 |
 ```
 
-Follow the paths and ids across the document: `leaf-1.1.1`'s `Owns` cell names the exact same two paths as Task 1.1.1's `Files:` block above — that equality is what the claim check enforces at runtime. `leaf-1.1.1` is `Owner` on contract row `C1`, and `C1`'s observing gate, `gates/leaf-1.1.1.md:G1`, is the gate that same leaf's own `GATES.md` will carry once `ledger:verifying` authors it. `leaf-1.1.2`'s `Needs` cell names `leaf-1.1.1`, matching the Contract's `Dependencies:` line and the wave policy that puts it a wave later. Nothing in this document repeats free-floating prose about "the override feature" — every mention of it is one of these three tied-together rows.
+Follow the paths and ids across the document: `1.1.1`'s `Owns` cell names the exact same two paths as Task 1.1.1's `Files:` block above — that equality is what the claim check enforces at runtime. `1.1.1` is `Owner` on contract row `C1`, and `C1`'s observing gate, `gates/leaf-1.1.1.md:G1`, points at that same leaf's own ledger — `gates/leaf-1.1.1.md`, not the root `GATES.md` — once `ledger:verifying` authors it. `1.1.2`'s `Needs` cell names `1.1.1`, matching the Contract's `Dependencies:` line and the wave policy that puts it a wave later. Nothing in this document repeats free-floating prose about "the override feature" — every mention of it is one of these three tied-together rows.
 
 ## Self-Review
 
