@@ -43,6 +43,26 @@ Copy [`templates/gates-leaf.md`](../../templates/gates-leaf.md) to `GATES.md` be
 
 One gate, one observable outcome — not one gate per file touched, per function written, or per step in a plan. Every gate a command can decide gets an indented `CHECK:` and `EXPECT:` beneath it. Write a manual gate — no `CHECK:`, no `EXPECT:` — only for an outcome no command can decide: a design judgement, a wording review, an owner's sign-off.
 
+## Orchestrated Scope
+
+Solo scope has one ledger: `GATES.md` at the repository root. Orchestrated scope has one per unit, under the pipeline scope directory, and authoring all of them is this skill's job. `ledger:planning` decides which outcomes need an observer and who owns each; `ledger:executing` only confirms they exist before it dispatches.
+
+```text
+.unlazy/<scope>/
+  GATES.md              # the root unit,   from templates/gates-leaf.md
+  gates/
+    leaf-1.1.1.md       # one per leaf,    from templates/gates-leaf.md
+    node-1.1.md         # one per branch,  from templates/gates-node.md
+```
+
+Create `.unlazy/<scope>/gates/` yourself, at handoff, before that unit's first step runs. The driver does not create it and will not dispatch a leaf whose ledger is missing. [`references/parallel.md`](../../references/parallel.md) has the full layout this sits inside. Ids come from the plan's tree — leaf `1.1.1` → `gates/leaf-1.1.1.md`, branch `1.1` → `gates/node-1.1.md` — and a gate is cited across documents as `gates/leaf-1.1.1.md:G1`.
+
+**Every leaf ledger carries a manual review gate** — no `CHECK:`, no `EXPECT:` — whose outcome is "this leaf's diff passed independent spec and quality review." It is where the driver lands the reviewer's verdict; a leaf without one has nowhere to record it, so its runnable gates go green, the ledger reports `ALL MET`, and nobody has read the diff. [`templates/gates-leaf.md`](../../templates/gates-leaf.md) is vendored from upstream and reserves no id for it, and neither does `ledger:planning`. This is therefore a convention you apply, not a template slot you fill: add it at the end of the gate list under the next free id, while you are authoring the ledger, before the leaf is dispatched. Never add one after a review has come back — a gate written to fit a verdict you already hold is not a gate.
+
+The leaf ledger's `OWNS:` header is the command-time authority: `--claim` reads it and never opens `PLAN.md`. Set it equal, as a set, to that leaf's `Owns` cell in the dispatch table. `ledger:planning`'s treatment of that column says why nothing at runtime checks the two agree and whose duty reconciling them is; do not restate the guarantee here, and do not assume a successful claim proved it.
+
+A branch ledger copied from [`templates/gates-node.md`](../../templates/gates-node.md) arrives with its `N1` line still carrying `<skill-dir>` and `<scope>` placeholders. Resolve both before it can pass: `<skill-dir>` is the plugin root from "Resolving The Checker" above, written out as an absolute path for the reason given there, and `N1` must name every direct child ledger explicitly, leaf or branch.
+
 ## Author Gates That Can Fail Honestly
 
 A gate that cannot fail is not a gate; it is a checkbox wearing one. Before you trust a `CHECK:`:
