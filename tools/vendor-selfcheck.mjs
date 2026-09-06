@@ -29,6 +29,19 @@ if (run.error) {
 }
 
 const output = `${run.stdout ?? ''}${run.stderr ?? ''}`
+
+// Distinguish "the child never ran" from "a known mismatch started passing".
+// Both leave `failed` empty, but they need opposite diagnoses: a crash points
+// at self-check.mjs, a genuine pass points at this exclusion list.
+const recognized = [...output.matchAll(/^(?:ok|FAIL)\s+\S/gm)]
+if (recognized.length === 0) {
+  console.error('ERROR self-check.mjs produced no recognizable check output — it likely failed to run')
+  console.error(`  exit status: ${run.status}`)
+  const tail = output.trim().split('\n').slice(-5).join('\n')
+  if (tail) console.error(`  last output:\n${tail}`)
+  process.exit(1)
+}
+
 const failed = [...output.matchAll(/^FAIL (.+)$/gm)].map(m => m[1].trim())
 
 const unexpected = failed.filter(f => !KNOWN_LAYOUT_MISMATCHES.includes(f))
