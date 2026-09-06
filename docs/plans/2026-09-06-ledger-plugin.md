@@ -193,7 +193,7 @@ structural rules into a pass/fail signal. Every later task uses it.
   "type": "module",
   "scripts": {
     "test": "node --test tests/check-plugin.test.mjs && node tools/check-plugin.mjs .",
-    "test:vendor": "node tests/run-tests.mjs && node tests/dispatch-tests.mjs && node tests/hardening-tests.mjs && node tests/stress-tests.mjs && node tests/lint-tests.mjs && node tests/contract-tests.mjs && node tests/self-check.mjs"
+    "test:vendor": "node tests/run-tests.mjs && node tests/dispatch-tests.mjs && node tests/hardening-tests.mjs && node tests/stress-tests.mjs && node tests/lint-tests.mjs && node tests/contract-tests.mjs && node tools/vendor-selfcheck.mjs"
   },
   "engines": {
     "node": ">=16"
@@ -613,7 +613,7 @@ pass/fail signal the sync procedure depends on.
 
 **Interfaces:**
 - Consumes: `scripts/` and `tests/` from Task 3; the `test:vendor` script from Task 2.
-- Produces: nothing new. Establishes that `npm run test:vendor` is green.
+- Produces: `tools/vendor-selfcheck.mjs`, which routes the seventh vendored suite through a known-mismatch filter. Establishes that `npm run test:vendor` is green.
 
 - [ ] **Step 1: Run the vendored suite**
 
@@ -629,6 +629,89 @@ Expected: exit 0, usage text listing `--status`, `--approve`, `--reverify`
 
 Run: `node scripts/gate-lint.mjs templates/gates-leaf.md; echo "exit=$?"`
 Expected: the linter runs and reports on the template. Any exit code is acceptable here — a template full of placeholders is expected to draw warnings. What is being verified is that the script executes without crashing.
+
+- [ ] **Step 3b: Wrap `self-check.mjs` so its 12 script checks stay enforced**
+
+`tests/self-check.mjs` is a mixed suite. Twelve of its fifteen checks assert
+properties of the vendored enforcement scripts. Three assert unlazy's own
+document layout — a root `SKILL.md` and `references/orchestration.md` — which
+this design deliberately restructures into per-skill files, so they cannot
+pass here and never will.
+
+Running it raw makes `test:vendor` always exit 1, which trains everyone to
+ignore the gate. Deleting it discards twelve real checks on the code we
+vendor. Instead, wrap it: assert that exactly the three known mismatches fail
+and everything else passes. A new failure breaks the build; so does one of
+the three starting to pass, which would mean upstream changed the assertion
+and the exclusion needs revisiting.
+
+Create `tools/vendor-selfcheck.mjs`:
+
+```js
+#!/usr/bin/env node
+// Runs the vendored tests/self-check.mjs and passes only when its failures
+// are exactly the three that assert unlazy's own repo layout — a root
+// SKILL.md and references/orchestration.md — which ledger restructures into
+// per-skill files by design. See docs/specs/2026-09-06-ledger-design.md.
+//
+// Any other failure fails this gate. So does one of the three passing:
+// that means upstream changed the assertion and this exclusion needs review.
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+const KNOWN_LAYOUT_MISMATCHES = [
+  'every local resource the skill names exists',
+  'leaf release precedes dependent promotion everywhere',
+  'request reconciliation keeps the focused solo cheap path'
+]
+
+const run = spawnSync(process.execPath, [join(ROOT, 'tests', 'self-check.mjs')], {
+  cwd: ROOT,
+  encoding: 'utf8'
+})
+
+if (run.error) {
+  console.error(`ERROR could not run self-check.mjs: ${run.error.message}`)
+  process.exit(1)
+}
+
+const output = `${run.stdout ?? ''}${run.stderr ?? ''}`
+const failed = [...output.matchAll(/^FAIL (.+)$/gm)].map(m => m[1].trim())
+
+const unexpected = failed.filter(f => !KNOWN_LAYOUT_MISMATCHES.includes(f))
+const nowPassing = KNOWN_LAYOUT_MISMATCHES.filter(k => !failed.includes(k))
+
+for (const f of unexpected) console.error(`ERROR unexpected self-check failure: ${f}`)
+for (const k of nowPassing) {
+  console.error(`ERROR known layout mismatch now passes, revisit the exclusion: ${k}`)
+}
+
+if (unexpected.length > 0 || nowPassing.length > 0) {
+  console.error(`${unexpected.length + nowPassing.length} problem(s) found`)
+  process.exit(1)
+}
+
+console.log(
+  `vendor self-check passed (${KNOWN_LAYOUT_MISMATCHES.length} known layout mismatches excluded)`
+)
+```
+
+- [ ] **Step 3c: Verify the wrapper passes, and that it fails when it should**
+
+Run: `node tools/vendor-selfcheck.mjs; echo "exit=$?"`
+Expected: `vendor self-check passed (3 known layout mismatches excluded)`, `exit=0`
+
+Then prove it is not a rubber stamp — temporarily remove one entry from
+`KNOWN_LAYOUT_MISMATCHES`, re-run, and confirm it reports the unexpected
+failure and exits 1. Restore the entry afterwards and re-run to confirm exit 0.
+
+- [ ] **Step 3d: Re-run the full vendored gate**
+
+Run: `npm run test:vendor`
+Expected: all six raw suites pass and the wrapper passes; overall exit 0.
 
 - [ ] **Step 4: Record the result in the README**
 
