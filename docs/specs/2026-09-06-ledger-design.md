@@ -292,9 +292,16 @@ Six places where the merged system would otherwise contradict itself.
 
 ## Layout
 
+The top-level split is load-bearing: **`scripts/`, `templates/`, and
+`references/` are vendored and never hand-edited; `tools/` is ours.** Putting
+the boundary at a directory makes Decision 2's rule checkable rather than
+remembered.
+
 ```
 .claude-plugin/plugin.json
 NOTICE                          MIT attribution, both pins
+VENDOR.lock                     sha256 per vendored file
+package.json
 hooks/
   hooks.json                    SessionStart -> using-ledger
   session-start
@@ -302,17 +309,29 @@ commands/
   gates-enforce.md              opt-in Stop hook installer
 scripts/                        VENDORED UNMODIFIED (Decision 2)
   gate-check.mjs  gate-lint.mjs  dispatch-check.mjs
-  stop-hook.mjs   install-hooks.mjs
-  lib/  tests/
-templates/                      PLAN.md  gates-leaf.md  gates-node.md
-references/
+  stop-hook.mjs   install-hooks.mjs  lib/
+templates/                      VENDORED: PLAN.md gates-leaf.md gates-node.md
+references/                     VENDORED
   gates.md  dispatch.md  parallel.md  token-economy.md  SECURITY.md
+tools/                          OURS
+  check-plugin.mjs              structural validator
+  sync-unlazy.sh                vendor verify / update
+tests/
+  check-plugin.test.mjs         ours
+  vendor/                       unlazy's seven suites, vendored
 skills/
   using-ledger/  planning/  executing/  verifying/
   brainstorming/  test-driven-development/  systematic-debugging/
   receiving-code-review/  requesting-code-review/
   using-git-worktrees/  finishing-a-development-branch/  writing-skills/
 ```
+
+`tools/check-plugin.mjs` is the piece the design did not originally call for
+and the implementation plan added: it turns this section's structural rules —
+frontmatter validity, no `superpowers:` strings, every `ledger:<name>`
+resolving, no broken relative links — into an exit code. Without it a
+prose-heavy plugin has no red-green cycle at all, and the cross-reference
+rewrite above would be verified by eye.
 
 Unlazy's `references/method.md` and `references/orchestration.md` do not survive
 as files — their content folds into `planning` and `executing` respectively.
