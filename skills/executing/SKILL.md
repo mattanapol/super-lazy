@@ -1,11 +1,11 @@
 ---
 name: executing
-description: Use when executing a plan with independent leaves - dispatches subagents in sealed waves with disjoint file ownership, re-verifies every return independently, and integrates bottom-up
+description: Use when executing a written implementation plan, solo or orchestrated - runs a solo plan's tasks in order in-session against one GATES.md, or dispatches independent leaves as subagents in sealed waves with disjoint file ownership, re-verifying every return independently and integrating bottom-up
 ---
 
 # Executing
 
-**Core principle:** one driver loop, sized to the work. Claim → open a wave → launch every leaf → seal → wait → re-verify → release → promote. A wave of one leaf *is* sequential execution, so the same loop runs a single deliverable and a twelve-leaf fan-out; only the size of the wave changes. There is no simpler mode to drop into and no faster path that skips a step.
+**Core principle:** one driver loop, sized to the work. Claim → open a wave → launch every leaf → seal → wait → re-verify → release → promote. A wave of one leaf *is* sequential execution, so the same loop runs a single deliverable and a twelve-leaf fan-out; only the size of the wave changes. There is exactly one simpler mode — solo scope, below — and the plan chooses it before execution starts. Inside orchestrated scope there is no faster path that skips a step and nothing to drop into mid-run.
 
 You are the driver. You plan each wave, dispatch it, verify every return independently, integrate bottom-up, and write the root report. You never implement, and you never fix a review finding yourself — your context is for coordination, and a driver fix skips review entirely.
 
@@ -36,6 +36,28 @@ Assign `LEDGER` at the top of every command block that uses it — the examples 
 **Gate `CHECK:` lines carry the resolved absolute path itself — never `$LEDGER`, never a placeholder.** A `CHECK:` is stored text that some *other* shell runs later: your own `--reverify`, a branch's `N1`, the Stop hook. Approval binds the exact command text and not the environment behind it, so a `CHECK:` naming a variable passes in the session that authored it and then fails for everyone who re-verifies it. `ledger:verifying` has the full rule; the node ledgers you inherit from `templates/gates-node.md` need it applied to their `N1` line before they can pass.
 
 `<skill-dir>` in the vendored references and templates — [`references/parallel.md`](../../references/parallel.md), [`references/dispatch.md`](../../references/dispatch.md), [`templates/PLAN.md`](../../templates/PLAN.md), [`templates/gates-node.md`](../../templates/gates-node.md) — means this same plugin root. Those files are vendored byte-identical from upstream and cannot be edited here, so read every `node <skill-dir>/scripts/…` in them as this resolved path.
+
+## Solo Scope
+
+`ledger:planning` writes two shapes of plan, and this skill runs both. A plan whose header says `Mode: solo` — or that has no `Scope:` line, no Depth Tree, and no dispatch table — is solo scope, and nothing from §1 onward applies to it: no scope directory, no lease, no wave, no dispatch table to read, no leaf to brief, no subagent to implement it. You run it, here, in this session.
+
+1. **Workspace.** As in §1: use `ledger:using-git-worktrees`, and never start implementation on main/master without your human partner's explicit consent. There is no `.unlazy/<scope>/` and no scoped copy — the committed `docs/plans/…` file is the plan, and it is the one you read and the one whose task checkboxes you tick. `sdd-workspace`, `task-brief`, and `review-package` are dispatch tooling; only `review-package` has a use here, at step 5.
+2. **Gates before the work.** One root `GATES.md` at the repository root — the legacy single-pipeline layout `references/parallel.md` documents — authored per `ledger:verifying` from `templates/gates-leaf.md` before the first task's first step, covering the plan's required outcomes. Drop the `OWNS:` header: it declares a lease, and solo scope has no second writer to coordinate with. Lint it, read every `CHECK:`, then approve.
+3. **Tasks in order.** Work the plan's numbered tasks top to bottom, running each task's steps as written; where they are test-first steps, run them that way (`ledger:test-driven-development`). §5's four-pass rule applies to the deliverable as a whole — implement completely, re-read as a domain expert, hunt defects, polish — repeated until a full pass finds nothing. §7 still governs what you decide versus what you stop and ask about.
+4. **Prove it.** Work `GATES.md` to `ALL MET`, then re-verify it against current state:
+
+   ```bash
+   LEDGER=/absolute/path/to/ledger
+   node "$LEDGER/scripts/gate-check.mjs" --reverify GATES.md
+   ```
+
+   No parent will do this for you, which is exactly why you do it yourself rather than trusting evidence you recorded an hour ago.
+5. **Review.** One independent review before the work is done: package the branch with `review-package` and dispatch `ledger:requesting-code-review`. Its verdict is evidence on a manual gate in `GATES.md` — the same landing §6 gives a leaf reviewer's verdict — and then you re-verify. Skipping the reviewer is `ledger:verifying`'s Proportion question answered deliberately, not a default of this mode.
+6. **Finish.** §12's report standard binds unchanged: re-read the current request, re-measure every number, name every abandonment, and collect every `Ruling:` line into the final message. Then use `ledger:finishing-a-development-branch`.
+
+What solo scope does not buy is the independence in §11. Layers 2 and 3 do not exist here — no parent re-verifies your ledger, no branch gate catches locally correct pieces that fail to compose — so your gates and your reviewer are the whole of it. When that thinness starts to matter, the answer is to re-plan the work as orchestrated scope, not to loosen the gates.
+
+Everything below is orchestrated scope.
 
 ## 1. Setup
 

@@ -237,7 +237,7 @@ User-stated preferences for either location override these defaults.
 
 Before implementation starts, gates get authored: one `GATES.md` for solo scope, or one `gates/leaf-*.md` per leaf and `gates/node-*.md` per branch for orchestrated scope — copied from `templates/gates-leaf.md` / `templates/gates-node.md` per `ledger:verifying`, before that unit's first step runs, never after. This skill decided *who* owns each outcome and *what* observes it; `ledger:verifying` decides how to write a `CHECK:`/`EXPECT:` pair that can actually fail.
 
-Once gates exist, hand the plan to `ledger:executing`, which reads the dispatch table to decide what's claimable, drives waves of leaves through their gates, and runs branch integration as children verify.
+Once gates exist, hand the plan to `ledger:executing`. In solo scope it runs the plan's tasks in order, in-session, against that one root `GATES.md` — its "Solo Scope" section. In orchestrated scope it reads the dispatch table to decide what's claimable, drives waves of leaves through their gates, and runs branch integration as children verify.
 
 ## Full Reference
 
