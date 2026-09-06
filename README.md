@@ -13,8 +13,10 @@ codes.
 
 ## Enforcement
 
-Gates are active on install. The Stop hook — which structurally blocks the
-agent from ending a turn while a gate is unmet — is opt-in per project:
+Installing delivers the skills and a session-start router. Nothing runs
+or blocks on its own: gate discipline is prompt-level until you opt in,
+per project, to the Stop hook — which structurally blocks the agent from
+ending a turn while a gate is unmet:
 
 ```bash
 /gates-enforce            # install
@@ -35,7 +37,8 @@ them — run `tools/sync-unlazy.sh` to update.
 ## Checks
 
 ```bash
-npm test                          # vendored unlazy suite + plugin validator
+npm test                        # this plugin's own tests + structure validator
+npm run test:vendor             # unlazy's seven upstream suites, unmodified
 node tools/check-plugin.mjs .   # structure only
 ```
 
