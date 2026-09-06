@@ -61,7 +61,7 @@ if [ "${1:-}" = "--update" ]; then
 fi
 
 failures=0
-while read -r expected path; do
+while read -r expected path || [ -n "$expected" ]; do
   case "$expected" in \#*) continue ;; esac
   [ -z "$expected" ] && continue
   if [ ! -f "${ROOT}/${path}" ]; then
