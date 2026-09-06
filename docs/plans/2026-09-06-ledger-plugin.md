@@ -323,7 +323,7 @@ test('a working relative markdown link passes', () => {
 
 - [ ] **Step 3: Run the tests to verify they fail**
 
-Run: `node --test tests/`
+Run: `node --test tests/check-plugin.test.mjs`
 Expected: FAIL — `Cannot find module .../tools/check-plugin.mjs`
 
 - [ ] **Step 4: Write the validator**
@@ -460,7 +460,7 @@ if (invokedDirectly) {
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `node --test tests/`
+Run: `node --test tests/check-plugin.test.mjs`
 Expected: PASS — 12 tests, 0 failures
 
 - [ ] **Step 6: Commit**
