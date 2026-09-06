@@ -79,6 +79,15 @@ patch job.
 The vendored test suite is retained specifically so this sync procedure has a
 pass/fail signal.
 
+Byte-identical means inheriting upstream's **layout** too, not just its bytes.
+The seven vendored suites resolve `../scripts/lib/*.mjs` relatively, so they
+must sit at `tests/`, where upstream puts them — relocating them to a tidier
+`tests/vendor/` resolves that path to a directory that does not exist and the
+whole suite fails to load. A vendored file's position is part of what was
+vendored. Our own `tests/check-plugin.test.mjs` coexists with them; the
+`.test.mjs` suffix and the explicit file list in `package.json` keep the two
+sets distinguishable without a directory boundary.
+
 **Upstream sync procedure.** Re-copy the script and its tests from the pinned
 upstream path, run the vendored suite, update the pin in `NOTICE`. If the suite
 fails, the sync is rejected — do not hand-patch vendored code.
@@ -318,7 +327,13 @@ tools/                          OURS
   sync-unlazy.sh                vendor verify / update
 tests/
   check-plugin.test.mjs         ours
-  vendor/                       unlazy's seven suites, vendored
+  run-tests.mjs                 VENDORED — these seven keep upstream's
+  dispatch-tests.mjs            own layout, because they resolve
+  hardening-tests.mjs           ../scripts/lib/*.mjs relatively and
+  stress-tests.mjs              break if relocated
+  lint-tests.mjs
+  contract-tests.mjs
+  self-check.mjs
 skills/
   using-ledger/  planning/  executing/  verifying/
   brainstorming/  test-driven-development/  systematic-debugging/

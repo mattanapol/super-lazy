@@ -193,7 +193,7 @@ structural rules into a pass/fail signal. Every later task uses it.
   "type": "module",
   "scripts": {
     "test": "node --test tests/check-plugin.test.mjs && node tools/check-plugin.mjs .",
-    "test:vendor": "node tests/vendor/run-tests.mjs && node tests/vendor/dispatch-tests.mjs && node tests/vendor/hardening-tests.mjs && node tests/vendor/stress-tests.mjs && node tests/vendor/lint-tests.mjs && node tests/vendor/contract-tests.mjs && node tests/vendor/self-check.mjs"
+    "test:vendor": "node tests/run-tests.mjs && node tests/dispatch-tests.mjs && node tests/hardening-tests.mjs && node tests/stress-tests.mjs && node tests/lint-tests.mjs && node tests/contract-tests.mjs && node tests/self-check.mjs"
   },
   "engines": {
     "node": ">=16"
@@ -517,13 +517,13 @@ MAP=(
   "scripts/lib/gates.mjs:scripts/lib/gates.mjs"
   "scripts/lib/process-tree.mjs:scripts/lib/process-tree.mjs"
   "scripts/lib/regex-worker.mjs:scripts/lib/regex-worker.mjs"
-  "tests/run-tests.mjs:tests/vendor/run-tests.mjs"
-  "tests/dispatch-tests.mjs:tests/vendor/dispatch-tests.mjs"
-  "tests/hardening-tests.mjs:tests/vendor/hardening-tests.mjs"
-  "tests/stress-tests.mjs:tests/vendor/stress-tests.mjs"
-  "tests/lint-tests.mjs:tests/vendor/lint-tests.mjs"
-  "tests/contract-tests.mjs:tests/vendor/contract-tests.mjs"
-  "tests/self-check.mjs:tests/vendor/self-check.mjs"
+  "tests/run-tests.mjs:tests/run-tests.mjs"
+  "tests/dispatch-tests.mjs:tests/dispatch-tests.mjs"
+  "tests/hardening-tests.mjs:tests/hardening-tests.mjs"
+  "tests/stress-tests.mjs:tests/stress-tests.mjs"
+  "tests/lint-tests.mjs:tests/lint-tests.mjs"
+  "tests/contract-tests.mjs:tests/contract-tests.mjs"
+  "tests/self-check.mjs:tests/self-check.mjs"
   "templates/PLAN.md:templates/PLAN.md"
   "templates/gates-leaf.md:templates/gates-leaf.md"
   "templates/gates-node.md:templates/gates-node.md"
@@ -597,7 +597,7 @@ Expected: `MODIFIED scripts/gate-check.mjs`, `1 vendored file(s) missing or modi
 ```bash
 git add tools/sync-unlazy.sh VENDOR.lock scripts/gate-check.mjs \
         scripts/gate-lint.mjs scripts/dispatch-check.mjs scripts/stop-hook.mjs \
-        scripts/install-hooks.mjs scripts/lib tests/vendor templates references
+        scripts/install-hooks.mjs scripts/lib tests templates references
 git commit -m "feat: vendor unlazy 2.1.0 tooling pinned by sha256"
 ```
 
@@ -612,7 +612,7 @@ pass/fail signal the sync procedure depends on.
 - Modify: `README.md` (record the verified suite result)
 
 **Interfaces:**
-- Consumes: `scripts/` and `tests/vendor/` from Task 3; the `test:vendor` script from Task 2.
+- Consumes: `scripts/` and `tests/` from Task 3; the `test:vendor` script from Task 2.
 - Produces: nothing new. Establishes that `npm run test:vendor` is green.
 
 - [ ] **Step 1: Run the vendored suite**
