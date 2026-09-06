@@ -1,0 +1,11 @@
+{
+  "name": "ledger",
+  "description": "Superpowers' development methodology with unlazy's machine-checked completion gates. Plan, test, and debug with process; prove done with exit codes.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Mattanapol K",
+    "email": "mattanapol.k@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["skills", "tdd", "verification", "gates", "orchestration"]
+}

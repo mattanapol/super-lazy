@@ -1,0 +1,30 @@
+ledger
+Copyright (c) 2026 Mattanapol K
+Licensed under the MIT License.
+
+This project is a merge of two MIT-licensed upstream projects. Their
+copyright notices and license terms are reproduced below and apply to the
+portions of this work derived from them.
+
+--------------------------------------------------------------------------
+Superpowers — https://github.com/obra/superpowers
+Copyright (c) Jesse Vincent <jesse@fsck.com>
+Licensed under the MIT License.
+Derived at version 6.3.0, commit f2cbfbefebbfef77321e4c9abc9e949826bea9d7.
+
+Portions used: the skills brainstorming, test-driven-development,
+systematic-debugging, receiving-code-review, requesting-code-review,
+using-git-worktrees, finishing-a-development-branch, and writing-skills;
+and the subagent prompt files implementer-prompt.md,
+task-reviewer-prompt.md, re-review-prompt.md, and code-reviewer.md.
+
+--------------------------------------------------------------------------
+unlazy — https://github.com/Leonxlnx/unlazy
+Copyright (c) Leonxlnx
+Licensed under the MIT License.
+Derived at version 2.1.0, commit 16671491f6679ad9378f52604d3bc2415b4120c7.
+
+Portions used: the enforcement scripts under scripts/ and their test
+suite, the gate and plan templates, and the reference documents
+gates.md, dispatch.md, parallel.md, token-economy.md, and SECURITY.md.
+--------------------------------------------------------------------------
