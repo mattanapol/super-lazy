@@ -1,0 +1,14 @@
+{
+  "name": "ledger-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Merged superpowers + unlazy skill set for Claude Code",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/check-plugin.test.mjs && node tools/check-plugin.mjs .",
+    "test:vendor": "node tests/vendor/run-tests.mjs && node tests/vendor/dispatch-tests.mjs && node tests/vendor/hardening-tests.mjs && node tests/vendor/stress-tests.mjs && node tests/vendor/lint-tests.mjs && node tests/vendor/contract-tests.mjs && node tests/vendor/self-check.mjs"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
