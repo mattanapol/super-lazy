@@ -41,6 +41,7 @@ These thoughts mean stop — you're rationalizing:
 | "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
 | "The skill is overkill" | Simple things become complex. Use it. |
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
+| "I remember this skill" | Skills evolve. Read current version. |
 
 ## Choosing The Mode
 
