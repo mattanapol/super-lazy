@@ -1,5 +1,6 @@
 .unlazy/
 .unlazy-hook-state.json
 .claude/settings.local.json
+.ledger/
 node_modules/
 .ledger-e2e/
