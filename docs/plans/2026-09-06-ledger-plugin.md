@@ -148,6 +148,7 @@ Replace `.gitignore` with:
 .unlazy/
 .unlazy-hook-state.json
 .claude/settings.local.json
+.ledger/
 node_modules/
 .ledger-e2e/
 ```
@@ -1048,7 +1049,7 @@ find skills/executing -type f -print0 | xargs -0 sed -i '' \
   -e 's|superpowers:finishing-a-development-branch|ledger:finishing-a-development-branch|g' \
   -e 's|superpowers:using-git-worktrees|ledger:using-git-worktrees|g' \
   -e 's|docs/superpowers/plans/|docs/plans/|g' \
-  -e 's|\.superpowers/sdd|.unlazy/sdd|g'
+  -e 's|\.superpowers/sdd|.ledger/sdd|g'
 ```
 
 - [ ] **Step 3: Write the skill**
