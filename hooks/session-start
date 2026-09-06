@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# SessionStart hook: inject the using-ledger router into every session.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SKILL="${PLUGIN_ROOT}/skills/using-ledger/SKILL.md"
+
+if [ ! -f "$SKILL" ]; then
+  echo '{}' ; exit 0
+fi
+
+# Escape for JSON embedding. Each substitution is one C-level pass.
+escape_for_json() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+content="$(cat "$SKILL")"
+escaped="$(escape_for_json "$content")"
+context="<EXTREMELY_IMPORTANT>\nYou have the ledger skill set.\n\n**Below is the full content of your 'ledger:using-ledger' skill. For all other skills, use the 'Skill' tool:**\n\n${escaped}\n</EXTREMELY_IMPORTANT>"
+
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context"
