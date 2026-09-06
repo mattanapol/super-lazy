@@ -38,3 +38,9 @@ them — run `tools/sync-unlazy.sh` to update.
 npm test                          # vendored unlazy suite + plugin validator
 node tools/check-plugin.mjs .   # structure only
 ```
+
+## Vendored suite
+
+`npm run test:vendor` runs unlazy's seven upstream suites unmodified. It is
+the gate on `tools/sync-unlazy.sh --update`: if the suite fails after an
+update, reject the update rather than patching vendored code.
