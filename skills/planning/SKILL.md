@@ -13,7 +13,16 @@ Write for an engineer with zero context for this codebase and questionable taste
 
 Decide this before writing a single task. It determines whether you produce the full three-in-one apparatus below or skip it.
 
-- **Solo** — the work is one coherent deliverable that fits in a single session, one worker, no fan-out. Write the task plan (below) to `docs/plans/YYYY-MM-DD-<feature>.md` and stop there: no Depth Tree, no dispatch table, no contract inventory. Execution runs the tasks in order against a single root `GATES.md`, authored per `ledger:verifying`. There is exactly one owner of everything, so there is nothing to reconcile.
+- **Solo** — the work is one coherent deliverable that fits in a single session, one worker, no fan-out. Write the task plan (below) to `docs/plans/YYYY-MM-DD-<feature>.md` and stop there: no Depth Tree, no dispatch table, no contract inventory. Execution runs the tasks in order against a single root `GATES.md`, authored per `ledger:verifying`. There is exactly one owner of everything, so there is nothing to reconcile. Open the file with a four-line header anyway — `Spec:`, `Mode: solo`, `Toolchain:`, and `Constraints:` — because the binding requirements of the spec still have to live somewhere an implementer and a reviewer can both quote verbatim, and in this shape there is no Contract section to hold them:
+
+  ```markdown
+  # Plan: <feature>
+
+  Spec: docs/specs/2026-09-06-<topic>-design.md
+  Mode: solo
+  Toolchain: Node 20, `npm test`, repository root as working directory
+  Constraints: <exact values, formats, and relationships the spec fixes>
+  ```
 - **Orchestrated** — the spec decomposes into several coherent deliverables that benefit from independent, fresh-context workers (parallel or simply isolated review boundaries). Write the full three-in-one `PLAN.md`: task plan, Depth Tree, dispatch table, and contract inventory, still saved to `docs/plans/YYYY-MM-DD-<feature>.md`. When `ledger:executing` begins dispatch, it copies this file into `.unlazy/<scope>/PLAN.md` — untracked, per `references/parallel.md` — and that copy, not the committed one, is where `State` transitions and lease claims actually happen. The committed file is the plan as agreed; the scoped file is the plan as it runs.
 
 When in doubt, prefer solo. Standing up leaves, ownership leases, and a contract inventory for a task one session can finish cleanly is the planning equivalent of building `GATES.md` for a typo fix — process weight with nothing behind it to hide.

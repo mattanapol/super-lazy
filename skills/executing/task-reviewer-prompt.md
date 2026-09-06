@@ -192,9 +192,10 @@ Subagent (general-purpose):
 - `[BRIEF_FILE]` — REQUIRED: the task brief file (`skills/executing/scripts/task-brief PLAN N`
   prints the path; same file the implementer worked from)
 - `[GLOBAL_CONSTRAINTS]` — the binding requirements copied verbatim from
-  the plan's Global Constraints section or the spec: exact values, formats,
-  and stated relationships between components (not process rules — those
-  are already in this template)
+  the plan's `Contract` section (orchestrated scope) or its `Constraints:`
+  header line (solo scope), or from the spec: exact values, formats, and
+  stated relationships between components (not process rules — those are
+  already in this template)
 - `[REPORT_FILE]` — REQUIRED: the file the implementer wrote its detailed
   report to
 - `[BASE_SHA]` — commit before this task

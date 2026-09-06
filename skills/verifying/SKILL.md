@@ -146,7 +146,9 @@ Never compose a "done" report while any required gate is unmet, abandoned, defer
 
 None of the above is free, and this plugin does not want it paid everywhere. A one-line typo fix, a config value change, or a factual answer to a question does not need `GATES.md`, a lint pass, or an approval record — it needs the change and, where relevant, a quick manual look that it did what it says. Building a ledger for that isn't rigor, it's ceremony: it adds process weight to a change too small to hide anything behind, and it trains you to stop reading gates carefully because most of the ones you've seen didn't need to exist.
 
-Reach for this discipline when the cost of being quietly wrong is real: multi-file behavior changes, anything you're about to report as done to someone else, work spanning more than one sitting or more than one agent, anything where "actually, it doesn't work" would be expensive to discover later. The question is never "could I write a gate for this?" — you almost always can. It's "does skipping verification here risk something worth this cost?" When the honest answer is no, skip the ledger and do the work.
+Skipping the ledger never licenses skipping the run. Whatever the size of the work, before you claim anything is complete, fixed, or passing: name the command that would show it, run it fresh, read the output, confirm it says what you are about to say — then claim. That sequence costs no `GATES.md`, no lint, and no approval record, and it binds every completion claim in every conversation, including the ones far too small to deserve a ledger.
+
+Reach for the ledger when the cost of being quietly wrong is real: multi-file behavior changes, anything you're about to report as done to someone else, work spanning more than one sitting or more than one agent, anything where "actually, it doesn't work" would be expensive to discover later. The question is never "could I write a gate for this?" — you almost always can. It's "does skipping verification here risk something worth this cost?" When the honest answer is no, skip the ledger and do the work.
 
 ## Common Rationalizations
 
