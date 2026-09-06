@@ -15,8 +15,11 @@ Derived at version 6.3.0, commit f2cbfbefebbfef77321e4c9abc9e949826bea9d7.
 Portions used: the skills brainstorming, test-driven-development,
 systematic-debugging, receiving-code-review, requesting-code-review,
 using-git-worktrees, finishing-a-development-branch, and writing-skills;
-and the subagent prompt files implementer-prompt.md,
-task-reviewer-prompt.md, re-review-prompt.md, and code-reviewer.md.
+the subagent prompt files implementer-prompt.md,
+task-reviewer-prompt.md, re-review-prompt.md, and code-reviewer.md; and
+skills/executing/scripts/review-package, skills/executing/scripts/sdd-workspace,
+and skills/executing/scripts/task-brief, derived from
+subagent-driven-development/scripts/.
 
 --------------------------------------------------------------------------
 unlazy — https://github.com/Leonxlnx/unlazy
