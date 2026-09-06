@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/check-plugin.test.mjs && node tools/check-plugin.mjs .",
-    "test:vendor": "node tests/run-tests.mjs && node tests/dispatch-tests.mjs && node tests/hardening-tests.mjs && node tests/stress-tests.mjs && node tests/lint-tests.mjs && node tests/contract-tests.mjs && node tests/self-check.mjs"
+    "test:vendor": "node tests/run-tests.mjs && node tests/dispatch-tests.mjs && node tests/hardening-tests.mjs && node tests/stress-tests.mjs && node tests/lint-tests.mjs && node tests/contract-tests.mjs && node tools/vendor-selfcheck.mjs"
   },
   "engines": {
     "node": ">=16"
