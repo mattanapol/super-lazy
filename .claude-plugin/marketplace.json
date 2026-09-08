@@ -1,0 +1,29 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "super-lazy",
+  "owner": {
+    "name": "Mattanapol K",
+    "email": "mattanapol.k@gmail.com"
+  },
+  "metadata": {
+    "description": "Single-plugin marketplace for ledger.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "ledger",
+      "source": "./",
+      "description": "Superpowers' development methodology with unlazy's machine-checked completion gates. Plan, test, and debug with process; prove done with exit codes.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Mattanapol K",
+        "email": "mattanapol.k@gmail.com"
+      },
+      "homepage": "https://github.com/mattanapol/super-lazy",
+      "repository": "https://github.com/mattanapol/super-lazy",
+      "license": "MIT",
+      "keywords": ["skills", "tdd", "verification", "gates", "orchestration"],
+      "category": "workflow"
+    }
+  ]
+}

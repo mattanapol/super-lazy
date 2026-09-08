@@ -32,13 +32,17 @@ neither needs this.
 
 ## Install
 
-```bash
-git clone https://github.com/mattanapol/super-lazy
-/plugin marketplace add ./super-lazy
-/plugin install ledger
+```
+/plugin marketplace add mattanapol/super-lazy
+/plugin install ledger@super-lazy
 ```
 
 Claude Code only. Node ≥16. No third-party runtime dependencies.
+
+To hack on the plugin, clone it and symlink the clone to `~/.claude/skills/ledger`
+instead — it loads as `ledger@skills-dir` and your edits apply next session. A
+marketplace install copies into `~/.claude/plugins/cache/`, where edits to the
+clone have no effect.
 
 ## What's in it
 
